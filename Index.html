@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <?!= include('Styles'); ?>
+  </head>
+  <body>
+    <div id="loginContainer">
+      <h1>Autentikasi</h1>
+      <input type="password" id="passwordInput" placeholder="Enter password">
+      <button onclick="login()">Login</button>
+    </div>
+    
+    <div id="appContainer" style="display: none;">
+      <h1>TITLE-WEB</TITLE-WEB></h1>
+      
+      <div id="metadataInfo" class="metadata-info">
+        <!-- Metadata akan ditampilkan di sini -->
+      </div>
+
+      <div class="search-container">
+        <input type="text" id="searchInput" placeholder="Cari nama file...">
+        <select id="folderPathSelect">
+          <option value="">Pilih Path Folder</option>
+        </select>
+        <button onclick="performSearch()">Cari</button>
+      </div>
+
+      <table id="dataTable">
+        <thead>
+          <tr>
+            <th>Nama File</th>
+            <th>Ukuran</th>
+            <th>Path Folder</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr id="placeholderRow">
+            <td colspan="4">Pilih path folder untuk menampilkan data.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div id="detailModal" class="modal">
+      <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2>Detail Backup</h2>
+        <p id="detailContent"></p>
+      </div>
+    </div>
+
+    <?!= include('JavaScript'); ?>
+  </body>
+</html>
