@@ -1,0 +1,149 @@
+<script>
+var allData = [];
+var userIp = '';
+
+function login() {
+  var password = document.getElementById('passwordInput').value;
+  google.script.run.withSuccessHandler(function(isValid) {
+    if (isValid) {
+      document.getElementById('loginContainer').style.display = 'none';
+      document.getElementById('appContainer').style.display = 'block';
+      loadApp();
+    } else {
+      alert('Password salah. Silakan coba lagi.');
+    }
+  }).checkPassword(password);
+}
+
+function loadApp() {
+  google.script.run.withSuccessHandler(function(data) {
+    allData = data;
+    populateFolderPaths();
+    loadMetadata();
+  }).getData();
+}
+
+function loadMetadata() {
+  google.script.run.withSuccessHandler(function(metadata) {
+    userIp = metadata.userIp;
+    var metadataInfo = document.getElementById('metadataInfo');
+    metadataInfo.innerHTML = `
+      <p>Total Data: ${metadata.totalFiles} files</p>
+      <p>Waktu Server: ${metadata.dateTime}</p>
+      <p>IP Address: ${metadata.userIp}</p>
+    `;
+    logAccess('Page Load', userIp);
+  }).getMetadata();
+}
+
+function logAccess(action, ip) {
+  google.script.run.logAccess(action, ip);
+}
+
+function populateFolderPaths() {
+  google.script.run.withSuccessHandler(function(paths) {
+    var select = document.getElementById('folderPathSelect');
+    paths.forEach(function(path) {
+      var option = document.createElement('option');
+      option.value = path;
+      option.textContent = path;
+      select.appendChild(option);
+    });
+  }).getUniqueFolderPaths();
+}
+
+function displayData(dataToDisplay) {
+  var tbody = document.getElementById('dataTable').getElementsByTagName('tbody')[0];
+  tbody.innerHTML = '';
+
+  if (dataToDisplay.length === 0) {
+    var placeholderRow = tbody.insertRow();
+    var cell = placeholderRow.insertCell();
+    cell.colSpan = 4;
+    cell.textContent = 'Tidak ada data yang sesuai dengan kriteria pencarian.';
+    return;
+  }
+
+  dataToDisplay.forEach(function(row) {
+    var tr = tbody.insertRow();
+
+    // Nama File
+    tr.insertCell().textContent = row[0];
+
+    // Ukuran File
+    tr.insertCell().textContent = row[2];
+
+    // Path Folder
+    tr.insertCell().textContent = row[3];
+
+    // Action button
+    var tdAction = tr.insertCell();
+    var btn = document.createElement('button');
+    btn.textContent = 'Detail';
+    btn.className = 'btn';
+    btn.onclick = function() {
+      showDetails(row);
+      logAccess('View Detail: ' + row[0], userIp);
+    };
+    tdAction.appendChild(btn);
+  });
+}
+
+function performSearch() {
+  var searchTerm = document.getElementById('searchInput').value.toLowerCase();
+  var selectedPath = document.getElementById('folderPathSelect').value;
+
+  if (!selectedPath) {
+    alert('Silakan pilih path folder terlebih dahulu.');
+    return;
+  }
+
+  logAccess('Search: ' + searchTerm + ' in ' + selectedPath, userIp);
+
+  var filteredData = allData.filter(function(row, index) {
+    if (index === 0) return false; // Skip header row
+    var matchesSearch = row[0].toLowerCase().includes(searchTerm);
+    var matchesPath = row[3] === selectedPath;
+    return matchesSearch && matchesPath;
+  });
+
+  displayData(filteredData);
+}
+
+document.getElementById('searchInput').addEventListener('keyup', function(event) {
+  if (event.key === 'Enter') {
+    performSearch();
+  }
+});
+
+document.getElementById('folderPathSelect').addEventListener('change', function() {
+  logAccess('Select Folder: ' + this.value, userIp);
+  performSearch();
+});
+
+function showDetails(rowData) {
+  var modal = document.getElementById('detailModal');
+  var span = document.getElementsByClassName("close")[0];
+  var content = document.getElementById('detailContent');
+
+  google.script.run.withSuccessHandler(function(details) {
+    content.innerHTML = 
+      '<p><strong>Nama File:</strong> ' + details.fileName + '</p>' +
+      '<p><strong>Link Drive:</strong> <a href="' + details.driveLink + '" target="_blank" onclick="logAccess(\'Open Drive Link: ' + details.fileName + '\', \'' + userIp + '\')">Buka</a></p>' +
+      '<p><strong>Ukuran:</strong> ' + details.fileSize + '</p>' +
+      '<p><strong>Path Folder:</strong> ' + details.folderPath + '</p>';
+
+    modal.style.display = "block";
+  }).getDetails(rowData);
+
+  span.onclick = function() {
+    modal.style.display = "none";
+  }
+
+  window.onclick = function(event) {
+    if (event.target == modal) {
+      modal.style.display = "none";
+    }
+  }
+}
+</script>
